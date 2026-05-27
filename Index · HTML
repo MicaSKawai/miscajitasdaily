@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MisCajitasDaily</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- BACKGROUND EFFECTS -->
+  <div class="bg-grid"></div>
+  <div class="bg-vignette"></div>
+  <div class="scanlines"></div>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <div class="logo-text">
+          <span class="logo-main">MisCajitas<span class="logo-accent">Daily</span></span>
+          <span class="logo-sub">CS2 DROP TRACKER</span>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="header-stat">
+          <span class="hs-label">SEMANA ACTUAL</span>
+          <span class="hs-value" id="current-week">—</span>
+        </div>
+        <div class="header-stat">
+          <span class="hs-label">TOTAL USD</span>
+          <span class="hs-value accent" id="header-total">$0.00</span>
+        </div>
+      </div>
+      <nav class="main-nav">
+        <button class="nav-btn active" data-view="dashboard">DASHBOARD</button>
+        <button class="nav-btn" data-view="registrar">REGISTRAR DROP</button>
+        <button class="nav-btn" data-view="historial">HISTORIAL</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- ===== VIEW: DASHBOARD ===== -->
+    <section id="view-dashboard" class="view active">
+      <div class="section-title">
+        <span class="st-line"></span>
+        <span class="st-text">RESUMEN GENERAL</span>
+        <span class="st-line"></span>
+      </div>
+
+      <!-- Big Stats -->
+      <div class="stats-grid">
+        <div class="stat-card big" id="sc-usd">
+          <div class="sc-icon">💵</div>
+          <div class="sc-body">
+            <div class="sc-value" id="stat-total-usd">$0.00</div>
+            <div class="sc-label">TOTAL GENERADO (USD)</div>
+          </div>
+          <div class="sc-glow"></div>
+        </div>
+        <div class="stat-card" id="sc-cajas">
+          <div class="sc-icon">📦</div>
+          <div class="sc-body">
+            <div class="sc-value" id="stat-total-cajas">0</div>
+            <div class="sc-label">CAJAS RECOLECTADAS</div>
+          </div>
+          <div class="sc-glow"></div>
+        </div>
+        <div class="stat-card" id="sc-armas">
+          <div class="sc-icon">🔫</div>
+          <div class="sc-body">
+            <div class="sc-value" id="stat-total-armas">0</div>
+            <div class="sc-label">ARMAS RECOLECTADAS</div>
+          </div>
+          <div class="sc-glow"></div>
+        </div>
+        <div class="stat-card" id="sc-semanas">
+          <div class="sc-icon">📅</div>
+          <div class="sc-body">
+            <div class="sc-value" id="stat-total-semanas">0</div>
+            <div class="sc-label">SEMANAS ACTIVAS</div>
+          </div>
+          <div class="sc-glow"></div>
+        </div>
+      </div>
+
+      <!-- Per Account Cards -->
+      <div class="section-title" style="margin-top:2.5rem">
+        <span class="st-line"></span>
+        <span class="st-text">POR CUENTA</span>
+        <span class="st-line"></span>
+      </div>
+      <div class="accounts-grid" id="accounts-grid">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Last Week Summary -->
+      <div class="section-title" style="margin-top:2.5rem">
+        <span class="st-line"></span>
+        <span class="st-text">ÚLTIMA SEMANA REGISTRADA</span>
+        <span class="st-line"></span>
+      </div>
+      <div class="last-week-table" id="last-week-table">
+        <div class="empty-state">No hay registros todavía. ¡Registrá tu primer drop!</div>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: REGISTRAR DROP ===== -->
+    <section id="view-registrar" class="view">
+      <div class="section-title">
+        <span class="st-line"></span>
+        <span class="st-text">REGISTRAR DROPS SEMANALES</span>
+        <span class="st-line"></span>
+      </div>
+
+      <div class="register-form-wrap">
+        <!-- Step 1: Select week & account -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">SEMANA</label>
+            <input type="week" class="form-input" id="input-week" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">CUENTA</label>
+            <select class="form-input" id="input-account">
+              <option value="Cuenta 1">Cuenta 1</option>
+              <option value="Cuenta 2">Cuenta 2</option>
+              <option value="Cuenta 3">Cuenta 3</option>
+              <option value="Cuenta 4">Cuenta 4</option>
+              <option value="Cuenta 5">Cuenta 5</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Drop selector -->
+        <div class="form-label" style="margin-bottom:.75rem">SELECCIONAR DROPS RECIBIDOS</div>
+
+        <div class="drop-tabs">
+          <button class="drop-tab active" data-cat="cajas">📦 CAJAS</button>
+          <button class="drop-tab" data-cat="armas">🔫 ARMAS</button>
+        </div>
+
+        <!-- CAJAS -->
+        <div class="drop-category active" id="cat-cajas">
+          <div class="drops-search">
+            <input type="text" class="form-input search-input" placeholder="Buscar caja..." id="search-cajas" />
+          </div>
+          <div class="drops-list" id="drops-cajas">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- ARMAS -->
+        <div class="drop-category" id="cat-armas">
+          <div class="drops-search">
+            <input type="text" class="form-input search-input" placeholder="Buscar arma..." id="search-armas" />
+          </div>
+          <div class="drops-list" id="drops-armas">
+            <!-- Filled by JS -->
+          </div>
+        </div>
+
+        <!-- Selected drops summary -->
+        <div class="selected-drops-wrap">
+          <div class="form-label">DROPS SELECCIONADOS <span id="selected-count" class="accent">(0)</span></div>
+          <div id="selected-drops-list" class="selected-drops-list">
+            <div class="empty-state small">Seleccioná items de arriba para agregarlos</div>
+          </div>
+          <div class="form-row" style="margin-top:1rem;align-items:center">
+            <div class="week-total-display">
+              TOTAL SEMANA: <span class="accent" id="week-total-preview">$0.00</span>
+            </div>
+            <button class="btn-primary" id="btn-save-drop">💾 GUARDAR REGISTRO</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: HISTORIAL ===== -->
+    <section id="view-historial" class="view">
+      <div class="section-title">
+        <span class="st-line"></span>
+        <span class="st-text">HISTORIAL COMPLETO</span>
+        <span class="st-line"></span>
+      </div>
+
+      <div class="historial-filters">
+        <select class="form-input sm" id="filter-account">
+          <option value="">Todas las cuentas</option>
+          <option value="Cuenta 1">Cuenta 1</option>
+          <option value="Cuenta 2">Cuenta 2</option>
+          <option value="Cuenta 3">Cuenta 3</option>
+          <option value="Cuenta 4">Cuenta 4</option>
+          <option value="Cuenta 5">Cuenta 5</option>
+        </select>
+      </div>
+
+      <div id="historial-list" class="historial-list">
+        <div class="empty-state">No hay registros todavía.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- MODAL: Edit price -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-title">EDITAR PRECIO — <span id="modal-item-name"></span></div>
+      <div class="form-group">
+        <label class="form-label">PRECIO EN USD</label>
+        <input type="number" step="0.01" min="0" class="form-input" id="modal-price-input" placeholder="0.00" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modal-cancel">CANCELAR</button>
+        <button class="btn-primary" id="modal-confirm">CONFIRMAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
