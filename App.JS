@@ -9,15 +9,15 @@ import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, order
 import { getDropsWithPrices, saveCustomPrice } from "./drops-data.js";
 
 // ============================================
-// 🔥 FIREBASE CONFIG — Reemplazá con la tuya
+// 🔥 FIREBASE CONFIG
 // ============================================
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROJECT.firebaseapp.com",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_PROJECT.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyC0r0DHrLBJEraeQbdLEyVf7TFRrCmO3pk",
+  authDomain: "cstraker-f83f0.firebaseapp.com",
+  projectId: "cstraker-f83f0",
+  storageBucket: "cstraker-f83f0.firebasestorage.app",
+  messagingSenderId: "929272497397",
+  appId: "1:929272497397:web:f12e74a08442709b42b1bc"
 };
 // ============================================
 
