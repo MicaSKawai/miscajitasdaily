@@ -6,7 +6,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getDropsWithPrices, saveCustomPrice } from "./drops-data.js";
+import { getDropsWithPrices, saveCustomPrice, saveCustomWeapon, deleteCustomWeapon, getCustomWeapons }
+  from "./drops-data.js";
 
 // ============================================
 // 🔥 FIREBASE CONFIG
@@ -19,17 +20,15 @@ const firebaseConfig = {
   messagingSenderId: "929272497397",
   appId: "1:929272497397:web:f12e74a08442709b42b1bc"
 };
-// ============================================
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
 // ---- State ----
 let allRecords = [];
-let selectedDrops = []; // { id, name, type, price }
-let pendingPriceEdit = null; // { id, resolve }
+let selectedDrops = [];
+let pendingPriceEdit = null;
 
-// ---- DOM Refs ----
 const $ = id => document.getElementById(id);
 
 // ====================
@@ -41,6 +40,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
     $(`view-${btn.dataset.view}`).classList.add('active');
+    if (btn.dataset.view === 'historial') renderHistorial();
   });
 });
 
@@ -62,45 +62,111 @@ document.querySelectorAll('.drop-tab').forEach(tab => {
 function renderDropLists(filter = { cajas: '', armas: '' }) {
   const drops = getDropsWithPrices();
 
-  const renderList = (items, containerId, type) => {
-    const container = $(containerId);
-    const filt = type === 'caja' ? filter.cajas.toLowerCase() : filter.armas.toLowerCase();
-    const filtered = items.filter(i => i.name.toLowerCase().includes(filt));
-    container.innerHTML = filtered.map(item => {
-      const isSelected = selectedDrops.some(s => s.id === item.id);
-      return `
-        <div class="drop-item ${isSelected ? 'selected' : ''}" data-id="${item.id}" data-type="${type}">
-          <span class="di-name">${item.name}</span>
-          <span class="di-price" data-id="${item.id}" data-type="${type}" title="Click para editar precio">
-            $${item.price.toFixed(2)}
-          </span>
-        </div>`;
-    }).join('') || '<div class="empty-state small">Sin resultados</div>';
+  // --- CAJAS ---
+  const cajasContainer = $('drops-cajas');
+  const filtCajas = filter.cajas.toLowerCase();
+  const filteredCajas = drops.cajas.filter(i => i.name.toLowerCase().includes(filtCajas));
+  cajasContainer.innerHTML = filteredCajas.map(item => {
+    const isSelected = selectedDrops.some(s => s.id === item.id);
+    return `
+      <div class="drop-item ${isSelected ? 'selected' : ''}" data-id="${item.id}" data-type="caja">
+        <span class="di-name">${item.name}</span>
+        <span class="di-price" data-id="${item.id}" title="Click para editar precio">$${item.price.toFixed(2)}</span>
+      </div>`;
+  }).join('') || '<div class="empty-state small">Sin resultados</div>';
 
-    // Click on item
-    container.querySelectorAll('.drop-item').forEach(el => {
-      el.addEventListener('click', e => {
-        if (e.target.classList.contains('di-price')) return;
-        const id = el.dataset.id;
-        const item = items.find(i => i.id === id);
-        if (!item) return;
-        toggleDropSelection(item, el.dataset.type);
-      });
+  cajasContainer.querySelectorAll('.drop-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('di-price')) return;
+      const item = drops.cajas.find(i => i.id === el.dataset.id);
+      if (item) toggleDropSelection(item, 'caja');
     });
-
-    // Click on price
-    container.querySelectorAll('.di-price').forEach(el => {
-      el.addEventListener('click', e => {
-        e.stopPropagation();
-        const id = el.dataset.id;
-        const item = items.find(i => i.id === id);
-        openPriceModal(item, el.dataset.type);
-      });
+  });
+  cajasContainer.querySelectorAll('.di-price').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const item = drops.cajas.find(i => i.id === el.dataset.id);
+      if (item) openPriceModal(item, 'caja');
     });
-  };
+  });
 
-  renderList(drops.cajas, 'drops-cajas', 'caja');
-  renderList(drops.armas, 'drops-armas', 'arma');
+  // --- ARMAS (custom) ---
+  renderArmasList(filter.armas);
+}
+
+function renderArmasList(filter = '') {
+  const weapons = getCustomWeapons();
+  const container = $('drops-armas');
+  const filt = filter.toLowerCase();
+  const filtered = weapons.filter(w => w.name.toLowerCase().includes(filt));
+
+  container.innerHTML = `
+    <div class="add-weapon-row">
+      <input type="text" class="form-input" id="new-weapon-name" placeholder="Ej: AK-47 | Redline" style="flex:1" />
+      <input type="number" step="0.01" min="0" class="form-input" id="new-weapon-price" placeholder="Precio USD" style="width:130px" />
+      <button class="btn-primary" id="btn-add-weapon" style="white-space:nowrap">+ AGREGAR</button>
+    </div>
+    ${filtered.length === 0 ? '<div class="empty-state small">No hay armas guardadas. ¡Agregá la primera arriba!</div>' :
+      filtered.map(w => {
+        const isSelected = selectedDrops.some(s => s.id === w.id);
+        return `
+          <div class="drop-item ${isSelected ? 'selected' : ''}" data-id="${w.id}" data-type="arma">
+            <span class="di-name">${w.name}</span>
+            <div style="display:flex;align-items:center;gap:.5rem">
+              <span class="di-price" data-id="${w.id}" title="Click para editar precio">$${w.price.toFixed(2)}</span>
+              <button class="btn-delete-weapon" data-id="${w.id}" title="Eliminar arma">🗑</button>
+            </div>
+          </div>`;
+      }).join('')
+    }`;
+
+  // Add weapon
+  $('btn-add-weapon').addEventListener('click', () => {
+    const name = $('new-weapon-name').value.trim();
+    const price = parseFloat($('new-weapon-price').value);
+    if (!name) { showToast('Escribí el nombre del arma', 'error'); return; }
+    if (isNaN(price) || price < 0) { showToast('Precio inválido', 'error'); return; }
+    const newWeapon = { id: `weapon_${Date.now()}`, name, price, type: 'arma' };
+    saveCustomWeapon(newWeapon);
+    $('new-weapon-name').value = '';
+    $('new-weapon-price').value = '';
+    renderArmasList($('search-armas').value);
+    showToast(`✅ "${name}" agregada`, 'success');
+  });
+
+  // Select weapon
+  container.querySelectorAll('.drop-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('di-price') || e.target.classList.contains('btn-delete-weapon')) return;
+      const weapons2 = getCustomWeapons();
+      const item = weapons2.find(w => w.id === el.dataset.id);
+      if (item) toggleDropSelection(item, 'arma');
+    });
+  });
+
+  // Edit price
+  container.querySelectorAll('.di-price').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const weapons2 = getCustomWeapons();
+      const item = weapons2.find(w => w.id === el.dataset.id);
+      if (item) openPriceModal(item, 'arma');
+    });
+  });
+
+  // Delete weapon
+  container.querySelectorAll('.btn-delete-weapon').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      // Remove from selected too
+      selectedDrops = selectedDrops.filter(s => s.id !== id);
+      deleteCustomWeapon(id);
+      renderArmasList($('search-armas').value);
+      renderSelectedDrops();
+      showToast('Arma eliminada', 'success');
+    });
+  });
 }
 
 function toggleDropSelection(item, type) {
@@ -141,12 +207,12 @@ function renderSelectedDrops() {
   });
 }
 
-// Searches
+// Search
 $('search-cajas').addEventListener('input', e => {
   renderDropLists({ cajas: e.target.value, armas: $('search-armas').value });
 });
 $('search-armas').addEventListener('input', e => {
-  renderDropLists({ cajas: $('search-cajas').value, armas: e.target.value });
+  renderArmasList(e.target.value);
 });
 
 // ====================
@@ -168,7 +234,6 @@ $('modal-confirm').addEventListener('click', () => {
   const price = parseFloat($('modal-price-input').value);
   if (isNaN(price) || price < 0) { showToast('Precio inválido', 'error'); return; }
   saveCustomPrice(pendingPriceEdit.id, price);
-  // Update in selected drops if present
   const sel = selectedDrops.find(s => s.id === pendingPriceEdit.id);
   if (sel) sel.price = price;
   $('modal-overlay').classList.add('hidden');
@@ -190,8 +255,7 @@ $('btn-save-drop').addEventListener('click', async () => {
 
   const total = selectedDrops.reduce((s, d) => s + d.price, 0);
   const record = {
-    week,
-    account,
+    week, account,
     drops: [...selectedDrops],
     total: parseFloat(total.toFixed(2)),
     createdAt: new Date().toISOString()
@@ -201,16 +265,15 @@ $('btn-save-drop').addEventListener('click', async () => {
     $('btn-save-drop').textContent = 'Guardando...';
     $('btn-save-drop').disabled = true;
     await addDoc(collection(db, 'drops'), record);
-    allRecords.push({ ...record, id: 'temp' });
     selectedDrops = [];
-    renderDropLists({cajas:'',armas:''});
+    renderDropLists({ cajas: '', armas: '' });
     renderSelectedDrops();
     $('input-week').value = '';
+    setDefaultWeek();
     showToast('✅ Registro guardado!', 'success');
     await loadAllRecords();
   } catch (e) {
-    console.error(e);
-    showToast('❌ Error guardando: ' + e.message, 'error');
+    showToast('❌ Error: ' + e.message, 'error');
   } finally {
     $('btn-save-drop').textContent = '💾 GUARDAR REGISTRO';
     $('btn-save-drop').disabled = false;
@@ -218,7 +281,7 @@ $('btn-save-drop').addEventListener('click', async () => {
 });
 
 // ====================
-//  LOAD & RENDER ALL
+//  LOAD ALL RECORDS
 // ====================
 async function loadAllRecords() {
   try {
@@ -228,11 +291,13 @@ async function loadAllRecords() {
     renderDashboard();
     renderHistorial();
   } catch (e) {
-    console.error('Error loading records:', e);
     showToast('Error cargando datos: ' + e.message, 'error');
   }
 }
 
+// ====================
+//  DASHBOARD
+// ====================
 function renderDashboard() {
   const totalUSD = allRecords.reduce((s, r) => s + (r.total || 0), 0);
   const totalCajas = allRecords.reduce((s, r) => s + r.drops.filter(d => d.type === 'caja').length, 0);
@@ -245,7 +310,6 @@ function renderDashboard() {
   $('stat-total-semanas').textContent = semanas;
   $('header-total').textContent = `$${totalUSD.toFixed(2)}`;
 
-  // Current week
   const now = new Date();
   const jan1 = new Date(now.getFullYear(), 0, 1);
   const week = Math.ceil((((now - jan1) / 86400000) + jan1.getDay() + 1) / 7);
@@ -264,8 +328,7 @@ function renderDashboard() {
   });
 
   const maxTotal = Math.max(...Object.values(accountTotals), 0.01);
-  const grid = $('accounts-grid');
-  grid.innerHTML = accounts.map(a => `
+  $('accounts-grid').innerHTML = accounts.map(a => `
     <div class="account-card">
       <div class="ac-name">${a}</div>
       <div class="ac-usd">$${accountTotals[a].toFixed(2)}</div>
@@ -292,9 +355,7 @@ function renderDashboard() {
   const weekTotal = lastWeekRecords.reduce((s, r) => s + r.total, 0);
   $('last-week-table').innerHTML = `
     <table class="lw-table">
-      <thead><tr>
-        <th>CUENTA</th><th>ITEM</th><th>TIPO</th><th>PRECIO</th>
-      </tr></thead>
+      <thead><tr><th>CUENTA</th><th>ITEM</th><th>TIPO</th><th>PRECIO</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr>
         <td colspan="3" style="padding:.7rem 1rem;font-family:var(--font-mono);font-size:.7rem;color:var(--text-secondary);letter-spacing:.1em">SEMANA ${lastWeek} — TOTAL</td>
@@ -303,6 +364,9 @@ function renderDashboard() {
     </table>`;
 }
 
+// ====================
+//  HISTORIAL
+// ====================
 function renderHistorial() {
   const filterAccount = $('filter-account').value;
   let records = allRecords;
@@ -322,7 +386,7 @@ function renderHistorial() {
         </div>
         <div style="display:flex;align-items:center;gap:1rem">
           <div class="hw-total">$${(r.total||0).toFixed(2)}</div>
-          <button class="hw-delete" data-id="${r.id}">🗑 BORRAR</button>
+          <button class="hw-delete" data-id="${r.id}">🗑 ELIMINAR</button>
           <span class="hw-toggle">▼</span>
         </div>
       </div>
@@ -338,7 +402,6 @@ function renderHistorial() {
       </div>
     </div>`).join('');
 
-  // Toggles
   document.querySelectorAll('.hw-header').forEach(header => {
     header.addEventListener('click', e => {
       if (e.target.classList.contains('hw-delete')) return;
@@ -350,18 +413,16 @@ function renderHistorial() {
     });
   });
 
-  // Delete buttons
   document.querySelectorAll('.hw-delete').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
-      const id = btn.dataset.id;
-      if (!confirm('¿Borrar este registro?')) return;
+      if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
       try {
-        await deleteDoc(doc(db, 'drops', id));
-        showToast('🗑 Registro borrado', 'success');
+        await deleteDoc(doc(db, 'drops', btn.dataset.id));
+        showToast('🗑 Registro eliminado', 'success');
         await loadAllRecords();
       } catch (err) {
-        showToast('Error al borrar: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
       }
     });
   });
@@ -376,11 +437,11 @@ function showToast(msg, type = '') {
   const t = $('toast');
   t.textContent = msg;
   t.className = `toast show ${type}`;
-  setTimeout(() => { t.classList.remove('show'); }, 3000);
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 // ====================
-//  SET DEFAULT WEEK
+//  DEFAULT WEEK
 // ====================
 function setDefaultWeek() {
   const now = new Date();
